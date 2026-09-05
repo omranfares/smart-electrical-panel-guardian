@@ -1,0 +1,126 @@
+#include <LiquidCrystal.h>
+
+LiquidCrystal lcd(12, 11, 6, 5, 4, 3);
+
+const int voltagePin = A1;
+const int currentPin = A2;
+const int tempPin = A0;
+
+const int redPin = 8;
+const int greenPin = 9;
+const int bluePin = 10;
+
+const int buzzerPin = 7;
+
+
+const float voltageWarning = 220.0;
+const float voltageCritical = 240.0;
+
+const float currentWarning = 5.0;
+const float currentCritical = 8.0;
+
+const float tempWarning = 40.0;
+const float tempCritical = 60.0;
+
+
+void setup() {
+  Serial.begin(9600);
+
+  lcd.begin(16, 2);
+
+  pinMode(redPin, OUTPUT);
+  pinMode(greenPin, OUTPUT);
+  pinMode(bluePin, OUTPUT);
+  pinMode(buzzerPin, OUTPUT);
+  
+  lcd.setCursor(0, 0);
+  lcd.print("SMART PANEL");
+  lcd.setCursor(0, 1);
+  lcd.print("GUARDIAN READY");
+
+  delay(2000);
+
+  lcd.clear();
+}
+
+
+void loop() {
+
+  int voltageRaw = analogRead(voltagePin);
+  int currentRaw = analogRead(currentPin);
+  int tempRaw = analogRead(tempPin);
+  float voltage = map(voltageRaw, 0, 1023, 0, 300);
+  float current = map(currentRaw, 0, 1023, 0, 10);
+  float voltageTemp = tempRaw * (5.0 / 1023.0);
+  float temperature = (voltageTemp - 0.5) * 100.0;
+
+
+  bool critical =
+    voltage > voltageCritical ||
+    current > currentCritical ||
+    temperature > tempCritical;
+
+  bool warning =
+    voltage > voltageWarning ||
+    current > currentWarning ||
+    temperature > tempWarning;
+
+  lcd.clear();
+
+  lcd.setCursor(0, 0);
+  lcd.print("V:");
+  lcd.print(voltage, 0);
+  lcd.print("V I:");
+  lcd.print(current, 1);
+  lcd.print("A");
+
+  lcd.setCursor(0, 1);
+
+  if (critical) {
+
+    lcd.print("CRITICAL!");
+    analogWrite(redPin, 255);
+    analogWrite(greenPin, 0);
+    analogWrite(bluePin, 0);
+    
+    tone(buzzerPin, 1000);
+
+  }
+
+  else if (warning) {
+
+    lcd.print("WARNING!");
+
+    
+    analogWrite(redPin, 0);
+    analogWrite(greenPin, 255);
+    analogWrite(bluePin, 0);
+
+    tone(buzzerPin, 700);
+    delay(200);
+    noTone(buzzerPin);
+
+  }
+
+  else {
+
+    lcd.print("NORMAL");
+
+    analogWrite(redPin, 0);
+    analogWrite(greenPin, 0);
+    analogWrite(bluePin, 255);
+
+    noTone(buzzerPin);
+  }
+
+  Serial.print("Voltage: ");
+  Serial.print(voltage);
+  Serial.print(" V | Current: ");
+  Serial.print(current);
+  Serial.print(" A | Temperature: ");
+  Serial.print(temperature);
+  Serial.println(" C");
+
+
+  delay(1000);
+}
